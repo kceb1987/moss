@@ -38,7 +38,6 @@ public class UUnitTest3 implements MUserProcess{
 			x += (ra.length >> 1);
 		}
 	}
-		MProcessTiming.resetGlobalTime();
 		//MPosixIf.exit(0);
 		return 0;
 	}

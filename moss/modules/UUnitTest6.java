@@ -14,7 +14,7 @@ import moss.user.*;
 public class UUnitTest6 implements MUserProcess{
 	public int main (String argv[], MEnv envp){
 	int processFailIndicator=0;//Initialize
-	int numberOfProcessesInUnitTest=4;
+	int numberOfProcessesInUnitTest=6;
 	
 	processFailIndicator= MPosixIf.forkexecc ("/bin/processG", argv);
 	processFailIndicator= MPosixIf.forkexecc ("/bin/processF", argv);
@@ -40,7 +40,6 @@ public class UUnitTest6 implements MUserProcess{
 			x += (ra.length >> 1);
 		}
 	}
-		MProcessTiming.resetGlobalTime();
 		//MPosixIf.exit(0);
 		return 0;
 	}

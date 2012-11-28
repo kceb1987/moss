@@ -61,6 +61,11 @@ public class MKernel
 		return m_schedular;
 	}
 	
+	public static void changeScheduler(SchedulerType type){
+		
+		m_schedularType=type;
+	}
+	
 
 	//{{{  private static class PFS_mkernel implements MProcFSIf
 	/**
@@ -121,7 +126,7 @@ public class MKernel
 	public static void init_kernel (MProcessor cpus[], PrintStream msgs)
 	{
 		//Set this value to make the specific schedular active <manj>
-		m_schedularType = SchedulerType.FIFO;
+		m_schedularType = SchedulerType.Lottery;
 		
 		m_schedular = NewScheduler();
 		

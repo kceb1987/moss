@@ -1,0 +1,17 @@
+Batch Report Example
+-----------------------------------------
+Scheduler::FIFO 1::
+Unit Test 1 Elapsed Time:0.0
+Unit Test 2 Elapsed Time:110.0
+Unit Test 3 Elapsed Time:279.0
+Unit Test 4 Elapsed Time:350.0
+Unit Test 5 Elapsed Time:352.0
+Unit Test 6 Elapsed Time:150.0
+-----------------------------------------
+Scheduler::FIFO 2::
+Unit Test 1 Elapsed Time:370.0
+Unit Test 2 Elapsed Time:110.0
+Unit Test 3 Elapsed Time:279.0
+Unit Test 4 Elapsed Time:350.0
+Unit Test 5 Elapsed Time:352.0
+Unit Test 6 Elapsed Time:150.0
