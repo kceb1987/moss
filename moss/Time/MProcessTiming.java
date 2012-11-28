@@ -195,6 +195,26 @@ static public void addCPUTimeSlotOnProcess(int processID,int startTime,int endTi
 			return -1;//Otherwise return a -1 to indicate that the process' schedule was not found.
 	}
 	
+	static public double findEndProcess(int processID){
+		int scheduleNum=findScheduleNum(processID);
+		
+		if (scheduleNum==-1) return -1;
+		
+		
+		for (int i=1;i<MProcessSchedules[scheduleNum].length;i=i+1){
+			
+			if(MProcessSchedules[scheduleNum][i][1]==-1){
+				
+				return MProcessSchedules[scheduleNum][i-1][1];
+				
+			}
+			
+		}
+		
+		return -1;
+		
+	}
+	
 	//advanceProcess is called in order to advance some process that has
 	//been chosen to run on the CPU.
 	static public double advanceProcess(int processID,double advanceTimeAmount){

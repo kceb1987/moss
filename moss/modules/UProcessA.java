@@ -25,6 +25,7 @@ public class UProcessA implements MUserProcess{
 			globalTimeAdvanceFromLastProcessRun=MProcessTiming.advanceProcess(MPosixIf.getpid(), quantum);
 			
 			MPosixIf.writestring (MPosixIf.STDOUT, "ProcessA ends at process time:"+MProcessTiming.findProcessTime(MPosixIf.getpid())+"\n");
+			MPosixIf.writestring(MPosixIf.STDOUT, "ProcessA's process length is:"+MProcessTiming.findEndProcess(MPosixIf.getpid())+"\n");
 			MPosixIf.writestring(MPosixIf.STDOUT, "Global time is:"+MProcessTiming.getGlobalTime()+"\n");
 			
 			MPosixIf.reschedule();
