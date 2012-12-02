@@ -21,6 +21,7 @@ package moss.kernel;
 
 import moss.fs.*;
 import moss.ipc.*;
+import moss.kernel.Scheduler.ProcessPriorityEnum;
 import moss.user.*;
 
 /**
@@ -31,8 +32,6 @@ import moss.user.*;
 public class MProcess extends Thread
 {
 	//{{{  variables
-	/** previous and next processes on the run-queue */
-	public MProcess prev, next;
 	/** next process on a wait queue */
 	public MProcess q_next;
 
@@ -87,6 +86,8 @@ public class MProcess extends Thread
 	/** link to the proc-filesystem info handler */
 	public PFS_mprocess pfslink;
 
+	/** Process Priority */
+	public ProcessPriorityEnum priority;
 
 	//}}}
 	//{{{  process state constants
@@ -260,8 +261,6 @@ public class MProcess extends Thread
 	 */
 	public MProcess ()
 	{
-		prev = null;
-		next = null;
 		q_next = null;
 		prev_task = null;
 		next_task = null;
@@ -280,6 +279,7 @@ public class MProcess extends Thread
 		umask = 0002;
 		environ = null;
 		pfslink = null;
+		priority = ProcessPriorityEnum.Medium;
 	}
 	//}}}
 	//{{{  public MProcess (MProcess parent)
@@ -290,8 +290,6 @@ public class MProcess extends Thread
 	 */
 	public MProcess (MProcess parent)
 	{
-		prev = null;
-		next = null;
 		q_next = null;
 		prev_task = null;
 		next_task = null;
@@ -309,6 +307,7 @@ public class MProcess extends Thread
 		kernel_if = null;
 		start_sem = new Semaphore (0);
 		syscall = null;
+		priority = ProcessPriorityEnum.Medium;
 
  		files = new MFile[MConfig.max_files_per_process];
 		for (int i = 0; i < files.length; i++) {
@@ -421,7 +420,7 @@ public class MProcess extends Thread
 		}
 
 		/* create and initialise a new MProcess structure */
-		mp = new MProcess (parent);
+		mp = MKernel.NewProcess(parent);
 		mp.user_if = mup;
 		mp.pid = MKernel.get_free_pid ();
 		mp.cmdline = args;

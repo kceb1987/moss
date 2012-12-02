@@ -1,6 +1,7 @@
 package moss.modules;
 
 import moss.Time.MProcessTiming;
+import moss.kernel.Scheduler.ProcessPriorityEnum;
 import moss.user.*;
 
 
@@ -11,16 +12,19 @@ import moss.user.*;
  * lower-priority ones even print out their first line.
  */
 
-public class UUnitTest1 implements MUserProcess{
+public class UUnitTest7 implements MUserProcess{
 	public int main (String argv[], MEnv envp){
-	int processFailIndicator=0;//Initialize
 	int numberOfProcessesInUnitTest=2;
 	
-	processFailIndicator= MPosixIf.forkexecc ("/bin/processA", argv);
-	processFailIndicator= MPosixIf.forkexecc ("/bin/processB", argv);
+	int pidA = MPosixIf.forkexecc ("/bin/processA", argv);
+	int pidB = MPosixIf.forkexecc ("/bin/processB", argv);
+	int pidC = MPosixIf.forkexecc ("/bin/processC", argv);
 	
+	MPosixIf.setPriority(pidA, ProcessPriorityEnum.Low);
+	MPosixIf.setPriority(pidB, ProcessPriorityEnum.Medium);
+	MPosixIf.setPriority(pidC, ProcessPriorityEnum.High);
 	
-	if (processFailIndicator < 0) {
+	if (pidA < 0 || pidB <0 || pidC<0) {
 		MPosixIf.writestring (MPosixIf.STDOUT, argv[0] + "Failed to complete Unit Test." +"\n");
 		MPosixIf.exit (1);
 	}

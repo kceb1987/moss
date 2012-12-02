@@ -83,7 +83,6 @@ public abstract class SchedulerBase implements IScheduler {
 		/* ensure it is properly detached from any queue */
 		old_p.state = MProcess.TASK_RUNNING;
 		MKernel.lock.release_write ();
-
 		return true;
 	}
 }

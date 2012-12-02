@@ -23,6 +23,13 @@ package moss.kernel;
 import moss.fs.*;
 import moss.drivers.*;
 import moss.ipc.*;
+import moss.kernel.Scheduler.IPriorityProcess;
+import moss.kernel.Scheduler.IPriorityScheduler;
+import moss.kernel.Scheduler.MPrioritizedLotteryProcess;
+import moss.kernel.Scheduler.MPrioritizedProcess;
+import moss.kernel.Scheduler.PrioritizedLotteryScheduler;
+import moss.kernel.Scheduler.ProcessPriorityEnum;
+import moss.kernel.Scheduler.RoundRobinPriorityScheduler;
 import moss.user.*;
 
 import java.lang.*;
@@ -48,17 +55,19 @@ public class MKernel
 
 	/** virtual processor objects */
 	public static MProcessor processors[];
-
+	
 	/** Scheduler object */
 	public static IScheduler m_schedular; 
-
+	
+	private static SchedulerType m_schedularType;
+	
 	//}}}
-
+	
 	public static IScheduler getScheduler()
 	{
 		return m_schedular;
 	}
-
+	
 
 	//{{{  private static class PFS_mkernel implements MProcFSIf
 	/**
@@ -118,7 +127,11 @@ public class MKernel
 	 */
 	public static void init_kernel (MProcessor cpus[], PrintStream msgs)
 	{
-		m_schedular = new FIFOScheduler();
+		//Set this value to make the specific scheduler active <manj>
+		m_schedularType = SchedulerType.FIFO;
+		
+		m_schedular = NewScheduler();
+		
 		current = new MProcess[MConfig.ncpus];
 		lock = new CREWLock ();
 		nextpid = 0;
@@ -188,54 +201,7 @@ public class MKernel
 	 */
 	public static void schedule ()
 	{
-		/* we enter this with the "current" Thread */
-		MProcess old_p, new_p;
-		int cpu = MProcessor.currentCPU ();
-
-		lock.claim_write ();
-
-		if (current[cpu] == null) {
-			panic ("MKernel::schedule().  current[cpu] is null!");
-		}
-		if (!getScheduler().IsProcessAvailable()) {
-			/* nothing else to run, make processor idle */
-			old_p = current[cpu];
-			new_p = null;
-			processors[cpu].set_process (null);
-		} else {
-			/* pick a process off the run-queue */
-			old_p = current[cpu];
-			new_p = getScheduler().GetNextProcess();
-
-			processors[cpu].set_process (new_p);
-		}
-		current[cpu] = null;
-
-		lock.release_write ();
-
-		if (new_p != old_p) {
-			/* wake new (if not idling), sleep old */
-			synchronized (old_p) {
-				if (new_p != null) {
-					synchronized (new_p) {
-						new_p.notify ();
-					}
-				}
-				try {
-					old_p.wait ();
-				} catch (InterruptedException e) {
-					panic ("MKernel::schedule().  interrupted: " + e.getMessage());
-				}
-			}
-		}
-
-		/* when a thread wakes up here, it is old_p */
-		cpu = MProcessor.currentCPU ();
-		lock.claim_write ();
-		current[cpu] = old_p;
-		/* ensure it is properly detached from any queue */
-		old_p.state = MProcess.TASK_RUNNING;
-		lock.release_write ();
+		getScheduler().Schedule();
 	}
 	//}}}
 	//{{{  private static void schedule_to_cpu (MProcess p, int cpu)
@@ -364,7 +330,7 @@ public class MKernel
 		/* tell parent process -- done before we check the run-queue. */
 		if (current[cpu].parent != null) {
 			MSignal chldsig = new MSignal (MSignal.SIGCHLD, (Object)(new int[] {current[cpu].pid, exitcode}));
-
+			
 			queue_signal (current[cpu].parent, chldsig);
 		}
 
@@ -379,7 +345,7 @@ public class MKernel
 			/* pick a process off the run-queue */
 			old_p = current[cpu];
 			new_p = getScheduler().GetNextProcess();
-
+			
 			processors[cpu].set_process (new_p);
 		}
 		current[cpu] = null;			/* just incase anything tries during the reschedule */
@@ -552,7 +518,7 @@ public class MKernel
 			}
 		}
 		lock.release_read ();
-
+		
 		return tmp;
 	}
 	//}}}
@@ -725,6 +691,42 @@ public class MKernel
 		lock.release_read ();
 		return procdata;
 	}
+	
+	public static Boolean setProcessPriority(int pid, ProcessPriorityEnum priority) {
+		Boolean retValue = false;
+		
+		lock.claim_read();
+		
+		//Check if process is currently running
+		for (int i=0; i<current.length; i++) {
+			MProcess iterateProcess = current[i];
+			if (iterateProcess == null)
+				continue;
+			
+			if (iterateProcess.pid == pid) {
+				if (iterateProcess instanceof IPriorityProcess) {
+					((IPriorityProcess)iterateProcess).SetPriority(priority);
+				}
+				else {
+					//Pid found, however the process doen't support Priority mechanism.
+					retValue = false;
+					break;
+				}
+			}
+		}
+		
+		//Check within scheduler list.
+		if (getScheduler() instanceof IPriorityScheduler){
+			retValue = ((IPriorityScheduler)getScheduler()).setProcessPriority(pid, priority);
+		}
+		else {
+			retValue = false;
+		}
+		
+		lock.release_read();
+		
+		return retValue;
+	}
 	//}}}
 	//{{{  public static void process_fault (MProcess p, RuntimeException e)
 	/**
@@ -774,4 +776,40 @@ public class MKernel
 		return;
 	}
 	//}}}
+	
+	
+	public static MProcess NewProcess(MProcess parentProcess)
+	{
+		switch(m_schedularType)
+		{
+		case FIFO:
+			return new MProcess(parentProcess);
+		case Lottery:
+			return new MLotteryProcess(parentProcess);
+		case PrioritizedLottery:
+			return new MPrioritizedLotteryProcess(parentProcess);
+		case PrioritizedRoundRobbin:
+			return new MPrioritizedProcess(parentProcess);
+		}
+		
+		return null;
+	}
+	
+	private static IScheduler NewScheduler()
+	{
+		switch(m_schedularType)
+		{
+		case FIFO:
+			return new FIFOScheduler();
+		case Lottery:
+			return new LotteryScheduler();
+		case PrioritizedLottery:
+			return new PrioritizedLotteryScheduler();
+		case PrioritizedRoundRobbin:
+			return new RoundRobinPriorityScheduler();
+		}
+		
+		return null;
+	}
 }
+
